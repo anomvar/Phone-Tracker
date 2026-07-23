@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Rakshak Pinpoint · TACNET</title>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.128/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.128/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+  <div id="webglError" class="webgl-error" hidden>
+    <div class="webgl-error-card">
+      <div class="webgl-error-tag">RENDER.FAULT</div>
+      <h1>WebGL unavailable</h1>
+      <p id="webglErrorDetail">Cesium could not create a GPU context.</p>
+      <ul>
+        <li>Open this app in <strong>Windows Chrome or Edge</strong> (not a headless / remote session).</li>
+        <li>Enable <strong>Use hardware acceleration</strong> in browser settings, then restart the browser.</li>
+        <li>On WSL: confirm WSLg GPU works — visit <a href="https://get.webgl.org" target="_blank" rel="noopener">get.webgl.org</a>.</li>
+        <li>Update NVIDIA drivers on Windows, then retry.</li>
+      </ul>
+      <button type="button" class="btn primary" id="webglRetry">↺ RETRY</button>
+    </div>
+  </div>
+
+  <!-- HUD chrome overlays -->
+  <div class="hud-grid" aria-hidden="true"></div>
+  <div class="hud-vignette" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="corner tl" aria-hidden="true"></div>
+  <div class="corner tr" aria-hidden="true"></div>
+  <div class="corner bl" aria-hidden="true"></div>
+  <div class="corner br" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <span class="ring"></span>
+        <span class="core"></span>
+      </div>
+      <div>
+        <div class="brand-name">E-RAKSHAK // PINPOINT</div>
+        <div class="brand-sub">TACNET · ERH26_PS_09 · MULTI-TOWER GEOLOC</div>
+      </div>
+    </div>
+    <div class="top-meta">
+      <div class="view-mode" id="viewMode">
+        <button type="button" class="mode-btn" data-mode="satellite">SAT</button>
+        <button type="button" class="mode-btn active" data-mode="simple">SIMPLE</button>
+      </div>
+      <div class="chip">SYS.ONLINE</div>
+      <div class="chip">ENC.AES</div>
+      <div class="live-pill" id="livePill">
+        <span class="pulse"></span>
+        <span id="liveLabel">STANDBY</span>
+      </div>
+    </div>
+  </header>
+
+  <div id="gapBanner" class="gap-banner" hidden></div>
+  <div class="map-credit" id="mapSource">INITIALIZING SENSOR LAYERS…</div>
+
+  <aside class="panel left">
+    <div class="panel-head">
+      <span class="panel-tag">NODE.01</span>
+      <h2>CASE SELECT</h2>
+    </div>
+    <div class="case-menu" id="caseMenu">
+      <button type="button" class="case-btn active" data-case="erakshak">
+        <span class="case-label">E-RAKSHAK</span>
+        <span class="case-sub">Hackathon CDR</span>
+      </button>
+      <button type="button" class="case-btn" data-case="fir47">
+        <span class="case-label">FIR 47</span>
+        <span class="case-sub">NCCRP 222/2024 · Surat</span>
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="panel-head compact">
+        <span class="panel-tag">TARGETS</span>
+        <h3 id="targetHeading">TARGET SELECT</h3>
+      </div>
+      <div id="targetList" class="target-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="panel-head compact">
+        <span class="panel-tag">TELEMETRY</span>
+        <h3>TRACK STATS</h3>
+      </div>
+      <div class="stat-grid" id="statsGrid">
+        <div class="stat"><span class="k">FIXES</span><span class="v" id="statFixes">—</span></div>
+        <div class="stat"><span class="k">TOWERS</span><span class="v" id="statTowers">—</span></div>
+        <div class="stat"><span class="k">TRI %</span><span class="v" id="statTri">—</span></div>
+        <div class="stat"><span class="k">CONF</span><span class="v" id="statConf">—</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="panel-head compact">
+        <span class="panel-tag">CTRL</span>
+        <h3>PLAYBACK</h3>
+      </div>
+      <div class="controls">
+        <button id="btnPlay" class="btn primary">▶ PLAY</button>
+        <button id="btnPause" class="btn">❚❚ PAUSE</button>
+        <button id="btnReset" class="btn">↺ RESET</button>
+      </div>
+      <div class="controls">
+        <button id="btnRecenter" class="btn">⌖ RECENTER</button>
+      </div>
+      <label class="follow-label">
+        <input type="checkbox" id="followToggle" />
+        LOCK CAMERA ON TARGET
+      </label>
+      <label class="speed-label">
+        <span>VELOCITY</span>
+        <input type="range" id="speedSlider" min="1" max="12" value="2" />
+        <span id="speedVal">2×</span>
+      </label>
+      <div class="seek-wrap">
+        <input type="range" id="seekSlider" min="0" max="100" value="0" />
+        <div class="seek-glow"></div>
+      </div>
+      <div class="progress-meta">
+        <span id="progressIdx">0 / 0</span>
+        <span id="progressTs">—</span>
+      </div>
+    </div>
+  </aside>
+
+  <aside class="panel right">
+    <div class="panel-head">
+      <span class="panel-tag">NODE.02</span>
+      <h2>LIVE FIX</h2>
+    </div>
+    <div class="fix-card" id="fixCard">
+      <div class="fix-row"><span>LAT</span><strong id="fixLat">—</strong></div>
+      <div class="fix-row"><span>LON</span><strong id="fixLon">—</strong></div>
+      <div class="fix-row"><span>ALT</span><strong id="fixAlt">—</strong></div>
+      <div class="fix-row"><span>CONFIDENCE</span><strong id="fixConf">—</strong></div>
+      <div class="fix-row"><span>METHOD</span><strong id="fixMethod">—</strong></div>
+      <div class="fix-row"><span>SPEED</span><strong id="fixSpeed">—</strong></div>
+      <div class="fix-row"><span>HEADING</span><strong id="fixHeading">—</strong></div>
+      <div class="fix-row"><span>CGI</span><strong id="fixCgi" class="mono">—</strong></div>
+      <div class="fix-row"><span>TOWERS</span><strong id="fixTowers" class="mono">—</strong></div>
+      <div class="fix-row"><span>DELTA</span><strong id="fixGap">—</strong></div>
+    </div>
+
+    <div class="section">
+      <div class="panel-head compact">
+        <span class="panel-tag">KEY</span>
+        <h3>LEGEND</h3>
+      </div>
+      <ul class="legend">
+        <li><i class="swatch suspect"></i> Suspect (pink / red marker)</li>
+        <li><i class="swatch raw"></i> Tower / CGI mast</li>
+        <li><i class="swatch tower"></i> Other cell towers</li>
+        <li><i class="swatch beam"></i> Mast → estimate link</li>
+        <li><i class="swatch heat"></i> Confidence radius</li>
+      </ul>
+    </div>
+
+    <p class="hint" id="modeHint">SIMPLE MODE: abstract sci-fi city · no satellite · cinematic chase on target. Switch to SAT for real imagery.</p>
+  </aside>
+
+  <footer class="bottombar">
+    <span>UPLINK // SURAT CITY POLICE × NEXUS</span>
+    <span class="ticker" id="ticker">TRIANGULATION ENGINE ACTIVE · KALMAN FILTER ENGAGED · GROUND-CLAMPED TRACK</span>
+    <span>CLASS: OPS</span>
+  </footer>
+
+  <script src="/js/app.js?v=webgl-wsl8" type="module"></script>
+</body>
+</html>
