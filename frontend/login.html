@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Rakshak Pinpoint · Secure Access</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/login.css" />
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-grid">
+      <section class="login-banner">
+        <div class="banner-emblem">
+          <div class="emblem-ring">
+            <div class="emblem-star">★</div>
+          </div>
+        </div>
+        <p class="banner-kicker">TACNET · GEOLOCATION INVESTIGATION SYSTEM</p>
+        <h1>E-Rakshak<br />Pinpoint</h1>
+        <p class="banner-sub">Authorised access only. All sessions are subject to monitoring, logging and audit. Unauthorised use is a criminal offence and will be prosecuted.</p>
+        <div class="banner-class">RESTRICTED</div>
+      </section>
+
+      <section class="login-form-wrap">
+        <div class="login-card" id="loginCard">
+          <p class="card-kicker">SECURE AUTHENTICATION</p>
+          <h2>Operator Sign-In</h2>
+          <p class="card-note">Authenticate to access case data and live tracking.</p>
+
+          <form id="loginForm" autocomplete="off" novalidate>
+            <label class="field">
+              <span>USERNAME</span>
+              <input id="username" name="username" type="text" required autocomplete="username" autofocus />
+            </label>
+            <label class="field">
+              <span>PASSWORD</span>
+              <input id="password" name="password" type="password" required autocomplete="current-password" />
+            </label>
+            <p class="error" id="loginError" hidden></p>
+            <button type="submit" class="btn-submit" id="loginBtn">AUTHENTICATE →</button>
+          </form>
+        </div>
+
+        <div class="login-card" id="changeCard" hidden>
+          <p class="card-kicker">FIRST-TIME ACCESS</p>
+          <h2>Change Password</h2>
+          <p class="card-note">Your bootstrap password is temporary. Set a new password to continue.</p>
+
+          <form id="changeForm" autocomplete="off" novalidate>
+            <label class="field">
+              <span>CURRENT PASSWORD</span>
+              <input id="curPassword" type="password" required autocomplete="current-password" />
+            </label>
+            <label class="field">
+              <span>NEW PASSWORD</span>
+              <input id="newPassword" type="password" required autocomplete="new-password" />
+              <em class="field-hint">≥ 10 characters, letters and digits</em>
+            </label>
+            <label class="field">
+              <span>CONFIRM NEW PASSWORD</span>
+              <input id="newPassword2" type="password" required autocomplete="new-password" />
+            </label>
+            <p class="error" id="changeError" hidden></p>
+            <button type="submit" class="btn-submit" id="changeBtn">SET PASSWORD →</button>
+          </form>
+        </div>
+
+        <p class="login-footer">
+          <span>SESSION ENCRYPTED · HMAC-SHA256 SIGNED</span>
+          <span>Version 1.2.0</span>
+        </p>
+      </section>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const forceChange = params.get("flow") === "change-password" ||
+        (window.AUTH.getUser() && window.AUTH.getUser().must_change_password);
+
+      function showCard(which) {
+        document.getElementById("loginCard").hidden = which !== "login";
+        document.getElementById("changeCard").hidden = which !== "change";
+      }
+      showCard(forceChange ? "change" : "login");
+      if (forceChange) document.getElementById("curPassword").focus();
+
+      function setError(el, msg) {
+        el.textContent = msg || "";
+        el.hidden = !msg;
+      }
+
+      document.getElementById("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("loginBtn");
+        const err = document.getElementById("loginError");
+        setError(err, "");
+        btn.disabled = true;
+        btn.textContent = "AUTHENTICATING…";
+        try {
+          const data = await window.AUTH.login(
+            document.getElementById("username").value.trim(),
+            document.getElementById("password").value
+          );
+          if (data.must_change_password) {
+            showCard("change");
+            document.getElementById("curPassword").focus();
+          } else {
+            window.location.replace("/");
+          }
+        } catch (ex) {
+          setError(err, ex.message || "Authentication failed");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "AUTHENTICATE →";
+        }
+      });
+
+      document.getElementById("changeForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const err = document.getElementById("changeError");
+        const btn = document.getElementById("changeBtn");
+        setError(err, "");
+        const n1 = document.getElementById("newPassword").value;
+        const n2 = document.getElementById("newPassword2").value;
+        if (n1 !== n2) { setError(err, "New passwords do not match."); return; }
+        btn.disabled = true;
+        btn.textContent = "UPDATING…";
+        try {
+          await window.AUTH.changePassword(document.getElementById("curPassword").value, n1);
+          window.location.replace("/");
+        } catch (ex) {
+          setError(err, ex.message || "Password change failed");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "SET PASSWORD →";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

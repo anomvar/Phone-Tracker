@@ -1,0 +1,241 @@
+/* E-Rakshak Pinpoint — secure access portal. Professional, government-standard. */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --navy-900: #0a1a33;
+  --navy-800: #10264a;
+  --navy-700: #16335f;
+  --navy-600: #1d4178;
+  --ink: #16233a;
+  --slate: #5c6b82;
+  --paper: #fbfaf6;
+  --line: #d9dee6;
+  --gold: #b08d3f;
+  --gold-soft: #d8bc76;
+  --red: #a32323;
+  --white: #ffffff;
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--navy-900);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(43, 84, 158, 0.35), transparent 60%),
+    linear-gradient(160deg, #0b1c38 0%, #071329 100%);
+}
+
+.login-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  width: 100%;
+  max-width: 1080px;
+  margin: auto;
+  min-height: 100vh;
+}
+
+/* ------- left banner ------- */
+.login-banner {
+  color: var(--white);
+  padding: 72px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.banner-emblem {
+  margin-bottom: 40px;
+}
+
+.emblem-ring {
+  width: 74px; height: 74px;
+  border-radius: 50%;
+  border: 2px solid var(--gold-soft);
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: rgba(176, 141, 63, 0.08);
+}
+.emblem-ring::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  border: 1px solid rgba(216, 188, 118, 0.5);
+}
+.emblem-star {
+  color: var(--gold-soft);
+  font-size: 26px;
+}
+
+.banner-kicker {
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: var(--gold-soft);
+  margin-bottom: 18px;
+  font-weight: 600;
+}
+
+.login-banner h1 {
+  font-family: "Libre Baskerville", Georgia, serif;
+  font-weight: 700;
+  font-size: 52px;
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+}
+
+.banner-sub {
+  margin-top: 22px;
+  max-width: 400px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.banner-class {
+  margin-top: 44px;
+  align-self: flex-start;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--gold-soft);
+  border: 1px solid rgba(216, 188, 118, 0.5);
+  padding: 7px 16px;
+}
+
+/* ------- right form ------- */
+.login-form-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 64px;
+  background: var(--paper);
+}
+
+.login-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--navy-800);
+  box-shadow: 0 24px 60px -30px rgba(10, 26, 51, 0.4);
+  padding: 40px 44px;
+  max-width: 420px;
+  width: 100%;
+  margin: auto;
+}
+
+.card-kicker {
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  color: var(--red);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.login-card h2 {
+  font-family: "Libre Baskerville", Georgia, serif;
+  font-size: 26px;
+  color: var(--navy-900);
+  margin-bottom: 8px;
+}
+
+.card-note {
+  font-size: 13px;
+  color: var(--slate);
+  margin-bottom: 26px;
+  line-height: 1.55;
+}
+
+.field {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.field > span {
+  display: block;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--navy-700);
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+
+.field input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: "Inter", sans-serif;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.field input:focus {
+  border-color: var(--navy-600);
+  box-shadow: 0 0 0 3px rgba(29, 65, 120, 0.12);
+}
+
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--slate);
+  font-style: normal;
+}
+
+.btn-submit {
+  width: 100%;
+  margin-top: 8px;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--white);
+  background: var(--navy-800);
+  border: 1px solid var(--navy-800);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-submit:hover { background: var(--navy-700); }
+.btn-submit:disabled { opacity: 0.6; cursor: wait; }
+
+.error {
+  background: #fdf0f0;
+  border: 1px solid #e6b7b7;
+  color: var(--red);
+  font-size: 12.5px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 3px;
+  line-height: 1.45;
+}
+
+.login-footer {
+  margin-top: 28px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  color: var(--slate);
+}
+
+@media (max-width: 860px) {
+  .login-grid { grid-template-columns: 1fr; }
+  .login-banner { display: none; }
+  .login-form-wrap { padding: 32px 20px; }
+  .login-card { padding: 32px 26px; }
+}

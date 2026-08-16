@@ -259,6 +259,44 @@ body.simple-mode #cesiumContainer {
   clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
 
+.reports-link {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  padding: 6px 10px;
+  background: rgba(0, 240, 255, 0.06);
+  text-decoration: none;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  transition: background 0.15s, color 0.15s;
+}
+.reports-link:hover { background: rgba(0, 240, 255, 0.16); color: #fff; }
+
+.user-chip {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--accent-2);
+  border: 1px solid rgba(57, 255, 176, 0.35);
+  padding: 6px 10px;
+  background: rgba(57, 255, 176, 0.05);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+.logout-btn {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--warn);
+  background: transparent;
+  border: 1px solid rgba(255, 168, 64, 0.4);
+  padding: 6px 10px;
+  cursor: pointer;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  transition: background 0.15s;
+}
+.logout-btn:hover { background: rgba(255, 168, 64, 0.15); }
+
 .live-pill {
   display: flex;
   align-items: center;
@@ -724,6 +762,7 @@ input[type="range"] {
   .panel { width: 250px; }
   .panel.right { display: none; }
   .chip { display: none; }
+  .reports-link, .user-chip, .logout-btn { display: none; }
   .bottombar .ticker { display: none; }
 }
 

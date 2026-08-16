@@ -1,5 +1,10 @@
 /* E-Rakshak Pinpoint — satellite + SIMPLE sci-fi cinematic mode */
 
+if (!window.AUTH || !window.AUTH.token) {
+  window.location.replace("/login.html");
+  throw new Error("Not authenticated");
+}
+
 Cesium.Ion.defaultAccessToken =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTc3MzMsImlhdCI6MTYyNzg0NTE4Mn0.XcKpgANiY19MC4bdFUXMVEBToBmqS8kuYpUlxJiq3l8";
 
@@ -463,7 +468,7 @@ async function setViewMode(mode, initial = false) {
   if (state.towers.length) placeTowers(state.towers);
   if (state.lastFix) {
     renderFix(state.lastFix, state.idx, true);
-    streetLevelFly(state.lastFix.lat, state.lastFix.lon, 1.0);
+    frameOnSuspect(state.lastFix, 1.0, { snap: true });
   }
 
   // Resume playback if the track isn't finished
@@ -554,8 +559,7 @@ function setCase(caseId) {
 }
 
 async function loadTargets() {
-  const res = await fetch(`/api/targets?case=${encodeURIComponent(state.caseId)}`);
-  const targets = await res.json();
+  const targets = await AUTH.api(`/api/targets?case=${encodeURIComponent(state.caseId)}`);
   const list = el("targetList");
   list.innerHTML = "";
   if (!Array.isArray(targets) || !targets.length) {
@@ -770,6 +774,10 @@ function placeTowers(towers) {
 }
 
 function streetLevelFly(lat, lon, duration = 1.4) {
+  // Follow lock owns the camera in simple mode — flyTo vs lookAt race misses the suspect
+  if (state.follow && state.viewMode === "simple" && !state.userControlling) {
+    return;
+  }
   viewer.camera.cancelFlight();
   viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
   const simple = state.viewMode === "simple";
@@ -788,19 +796,40 @@ function streetLevelFly(lat, lon, duration = 1.4) {
   });
 }
 
-function applyCinematicCamera(f) {
+/** Cinematic chase lock. Pass snap:true to hard-frame on suspect (toggle / recenter). */
+function applyCinematicCamera(f, { snap = false } = {}) {
   if (state.viewMode !== "simple") return;
   if (state.userControlling) return;
-  // In simple mode, cinematic chase runs whenever follow is on OR playback is live
   if (!state.follow) return;
+  if (!f || !isValidLL(Number(f.lat), Number(f.lon))) return;
 
-  const target = Cesium.Cartesian3.fromDegrees(f.lon, f.lat, 8);
-  state.cinematicHeading = (state.cinematicHeading + 0.15) % 360;
+  viewer.camera.cancelFlight();
+  const target = Cesium.Cartesian3.fromDegrees(Number(f.lon), Number(f.lat), 8);
+  if (snap) {
+    // Stable framing so re-lock always lands on the marker
+    state.cinematicHeading = 35;
+  } else {
+    state.cinematicHeading = (state.cinematicHeading + 0.15) % 360;
+  }
   const heading = Cesium.Math.toRadians(state.cinematicHeading);
-  const pitch = Cesium.Math.toRadians(-26);
-  const range = 300 + Math.min(Number(f.confidence_m) || 100, 220) * 0.4;
+  const pitch = Cesium.Math.toRadians(-28);
+  // Keep range steady on snap; soft confidence coupling while chasing
+  const range = snap
+    ? 380
+    : 320 + Math.min(Number(f.confidence_m) || 100, 180) * 0.35;
 
   viewer.camera.lookAt(target, new Cesium.HeadingPitchRange(heading, pitch, range));
+}
+
+/** Reframe on current fix — chase lock in simple+follow, otherwise flyTo. */
+function frameOnSuspect(f, duration = 1.0, { snap = true } = {}) {
+  if (!f || !isValidLL(Number(f.lat), Number(f.lon))) return;
+  state.userControlling = false;
+  if (state.follow && state.viewMode === "simple") {
+    applyCinematicCamera(f, { snap });
+  } else {
+    streetLevelFly(f.lat, f.lon, duration);
+  }
 }
 
 
@@ -824,10 +853,9 @@ async function loadTarget(msisdn) {
   state.userControlling = false;
   setLive("LOADING…", "");
 
-  const res = await fetch(
+  const data = await AUTH.api(
     `/api/targets/${msisdn}?case=${encodeURIComponent(state.caseId)}`
   );
-  const data = await res.json();
   state.track = data.track || [];
   state.towers = data.towers || [];
   state.total = state.track.length;
@@ -849,8 +877,8 @@ async function loadTarget(msisdn) {
       el("followToggle").checked = true;
       state.userControlling = false;
     }
-    streetLevelFly(first.lat, first.lon);
     renderFix(first, 0, true);
+    frameOnSuspect(first, 1.4, { snap: true });
   }
 
   setLive("READY", "paused");
@@ -926,7 +954,7 @@ function startAnim() {
       state.lerpTo = null;
       state.lerpT = 1;
       renderFix(to, state.idx, true);
-      if (!state.userControlling) streetLevelFly(to.lat, to.lon, 1.0);
+      if (!state.userControlling) frameOnSuspect(to, 1.0, { snap: true });
       state.dwellUntil = now + 900 / Math.max(state.speed, 1);
       return;
     }
@@ -1350,26 +1378,30 @@ el("btnReset").onclick = () => {
   state.userControlling = false;
   if (state.track.length) {
     renderFix(state.track[0], 0, true);
-    streetLevelFly(state.track[0].lat, state.track[0].lon, 0.9);
+    frameOnSuspect(state.track[0], 0.9, { snap: true });
   }
   state.playing = true;
   setLive("LIVE", "live");
   startAnim();
 };
 el("btnRecenter").onclick = () => {
-  state.userControlling = false;
-  if (state.lastFix) streetLevelFly(state.lastFix.lat, state.lastFix.lon, 0.9);
+  if (state.lastFix) frameOnSuspect(state.lastFix, 0.9, { snap: true });
 };
 el("followToggle").onchange = (e) => {
   state.follow = e.target.checked;
   state.userControlling = false;
+  viewer.camera.cancelFlight();
   if (state.follow) {
-    viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
     if (state.lastFix) {
-      if (state.viewMode === "simple") applyCinematicCamera(state.lastFix);
-      else streetLevelFly(state.lastFix.lat, state.lastFix.lon, 0.6);
+      if (state.viewMode === "simple") {
+        applyCinematicCamera(state.lastFix, { snap: true });
+      } else {
+        viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+        streetLevelFly(state.lastFix.lat, state.lastFix.lon, 0.6);
+      }
     }
   } else {
+    // Unlock lookAt while keeping current world view (radius flash on drag is Cesium rendering)
     viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
   }
 };
@@ -1384,7 +1416,7 @@ el("seekSlider").onchange = (e) => {
   const f = state.track[state.idx];
   if (f) {
     renderFix(f, state.idx, true);
-    if (!state.userControlling) streetLevelFly(f.lat, f.lon, 0.7);
+    if (!state.userControlling) frameOnSuspect(f, 0.7, { snap: true });
   }
 };
 
@@ -1394,7 +1426,20 @@ document.getElementById("caseMenu")?.addEventListener("click", (e) => {
   setCase(btn.dataset.case);
 });
 
-loadTargets().catch((err) => {
-  console.error(err);
-  el("targetList").innerHTML = `<div class="meta">Failed to load targets.</div>`;
-});
+document.getElementById("logoutBtn")?.addEventListener("click", () => AUTH.logout());
+
+(async function boot() {
+  try {
+    const ok = await AUTH.ready;
+    if (!ok) return;
+    const me = AUTH.getUser();
+    if (me) {
+      const chip = el("userChip");
+      if (chip) chip.textContent = `${me.username.toUpperCase()} · ${me.role.toUpperCase()}`;
+    }
+    await loadTargets();
+  } catch (err) {
+    console.error(err);
+    el("targetList").innerHTML = `<div class="meta">Failed to load targets.</div>`;
+  }
+})();
